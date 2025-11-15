@@ -2,17 +2,8 @@ import pyray as pr
 import utils
 
 from multi_sized_font import MultiSizedFont
-from typing import Callable
 from time import time
-
-
-class Tween:
-    def __init__(self, prop_name: str, increment_value: float, speed: float, on_complete: Callable) -> None:
-        self.prop_name: str = prop_name
-        self.target_value: float = increment_value
-        self.speed: float = speed
-        self.on_complete: Callable = on_complete
-
+from project import Project
 
 class Editor:
     def __init__(self) -> None:
@@ -25,7 +16,6 @@ class Editor:
 
         # msg + time of logging, in seconds
         self.logs: list[tuple[str, float]] = []
-        self.tweens: list[Tween] = []
 
         self.gui_padding: int = 20
     
@@ -66,7 +56,6 @@ class Editor:
         self.load_stuff()
         
         while self.is_running:
-            self.step_tweens()
             self.inputs()
 
             pr.begin_drawing()
@@ -83,27 +72,6 @@ class Editor:
         
         self.unload_stuff()
         pr.close_window()
-
-    def step_tweens(self) -> None:
-        i = 0
-        while i < len(self.tweens):
-            tw = self.tweens[i]
-            step = tw.speed * pr.get_frame_time()
-            setattr(self, tw.prop_name, getattr(self, tw.prop_name) + step)
-
-            cur_val = getattr(self, tw.prop_name)
-
-            if step > 0 and cur_val >= tw.target_value:
-                tw.on_complete()
-                self.tweens.pop(i)
-                continue
-
-            if step < 0 and cur_val <= tw.target_value:
-                tw.on_complete()
-                self.tweens.pop(i)
-                continue
-            
-            i += 1
 
     def canvas(self) -> None:
         pr.draw_text_ex(self.code_font.cur_font, "x: u8 = 10", (190, 200), self.text_size, 2, self.fg)
@@ -203,13 +171,17 @@ class Editor:
             1
         )
 
-        self.code_font: MultiSizedFont = MultiSizedFont(10, 50, step=10)
+        self.code_font: MultiSizedFont = MultiSizedFont(10, 40, step=5)
         self.code_font.load("res/3270.ttf")
         self.text_size: float = 30
         self.refresh_code_font()
 
         self.gui_font_size: int = 20
         self.gui_font: pr.Font = self.code_font.fonts[self.code_font.get_best_font_from_size(self.gui_font_size)]
+
+        self.prj: Project = Project("res/my_project.mpt")
+        self.prj.load()
     
     def unload_stuff(self) -> None:
         self.code_font.unload()
+        self.prj.unload()
